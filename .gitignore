@@ -1,0 +1,40 @@
+# Build
+build/
+cmake-build-*/
+out/
+
+# C/C++
+*.o
+*.a
+*.so
+*.d
+*.elf
+*.bin
+*.map
+
+# FPGA/Vivado generated files
+.vivado/
+.cache/
+.hw/
+.ip_user_files/
+*.jou
+*.log
+*.str
+*.runs/
+*.gen/
+*.srcs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary
+*.tmp
+*.swp
+.DS_Store

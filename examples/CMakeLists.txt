@@ -1,0 +1,3 @@
+add_executable(gemm_demo gemm/gemm_demo.cpp)
+
+target_link_libraries(gemm_demo PRIVATE tinynpu_runtime tinynpu_simulator)
