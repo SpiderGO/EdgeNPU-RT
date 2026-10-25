@@ -19,3 +19,12 @@ target_link_libraries(gemm_test
     PRIVATE
         tinynpu_runtime
 )
+
+add_executable(command_test
+    command_test.cpp
+)
+
+target_link_libraries(command_test
+    PRIVATE
+        tinynpu_runtime
+)
