@@ -10,3 +10,12 @@ add_test(
     NAME runtime_smoke
     COMMAND runtime_smoke
 )
+
+add_executable(gemm_test
+    gemm_test.cpp
+)
+
+target_link_libraries(gemm_test
+    PRIVATE
+        tinynpu_runtime
+)
