@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstddef>
-
+#include <tinynpu/device.h>
 namespace tinynpu {
 
 enum class CommandStatus {
@@ -36,6 +36,10 @@ struct GemmCommand {
 class CommandQueue {
 public:
     bool submit(const GemmCommand& command);
+    bool submit_gemm(const Tensor& a,
+                     const Tensor& b,
+                     Tensor& c,
+                     Event* completion_event = nullptr);
     bool wait();
 
     CommandStatus status() const noexcept;

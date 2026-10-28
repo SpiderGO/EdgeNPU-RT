@@ -35,8 +35,8 @@ FPGA Matrix Accelerator
 ### 应用验证
 暂定以多通道压力传感器数据为输入，构建轻量级抓握状态识别模型，验证边缘 AI 推理链路。
 ### 当前状态
-- [ ] Runtime 基础接口
-- [ ] 软件模拟设备
+- [√] Runtime 基础接口
+- [√] 软件模拟设备
 - [ ] Linux 字符设备驱动
 - [ ] i.MX6U 交叉编译
 - [ ] Zynq FPGA GEMM
