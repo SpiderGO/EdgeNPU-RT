@@ -1,10 +1,59 @@
 #include "tinynpu/device.h"
 
+#include <limits>
 #include <numeric>
 #include <stdexcept>
 #include <utility>
 
 namespace tinynpu {
+
+namespace {
+
+std::size_t checked_multiply(
+    std::size_t lhs,
+    std::size_t rhs,
+    const char* message
+) {
+    if (rhs != 0 &&
+        lhs > std::numeric_limits<std::size_t>::max() / rhs) {
+        throw std::overflow_error(message);
+    }
+
+    return lhs * rhs;
+}
+
+std::size_t checked_element_count(
+    const std::vector<std::size_t>& shape
+) {
+    if (shape.empty()) {
+        return 1;
+    }
+
+    std::size_t elements = 1;
+
+    for (std::size_t dim : shape) {
+        elements = checked_multiply(
+            elements,
+            dim,
+            "Tensor element count overflow"
+        );
+    }
+
+    return elements;
+}
+
+std::size_t checked_tensor_bytes(
+    const std::vector<std::size_t>& shape,
+    DataType dtype
+) {
+    return checked_multiply(
+        checked_element_count(shape),
+        data_type_size(dtype),
+        "Tensor byte size overflow"
+    );
+}
+
+}  // namespace
 
 std::size_t data_type_size(DataType dtype) {
     switch (dtype) {
@@ -39,12 +88,22 @@ bool Buffer::empty() const {
     return storage_.empty();
 }
 
-Tensor::Tensor(std::vector<std::size_t> shape,
-               DataType dtype,
-               Buffer buffer)
+Tensor::Tensor(
+    std::vector<std::size_t> shape,
+    DataType dtype,
+    Buffer buffer
+)
     : shape_(std::move(shape)),
       dtype_(dtype),
       buffer_(std::move(buffer)) {
+    const std::size_t expected_bytes =
+        checked_tensor_bytes(shape_, dtype_);
+
+    if (buffer_.size() != expected_bytes) {
+        throw std::invalid_argument(
+            "Tensor buffer size does not match shape and data type"
+        );
+    }
 }
 
 const std::vector<std::size_t>& Tensor::shape() const {
@@ -56,18 +115,7 @@ DataType Tensor::dtype() const {
 }
 
 std::size_t Tensor::element_count() const {
-    if (shape_.empty()) {
-        return 1;
-    }
-
-    return std::accumulate(
-        shape_.begin(),
-        shape_.end(),
-        std::size_t{1},
-        [](std::size_t result, std::size_t dim) {
-            return result * dim;
-        }
-    );
+    return checked_element_count(shape_);
 }
 
 std::size_t Tensor::nbytes() const {
@@ -95,20 +143,13 @@ Tensor Device::allocate_tensor(
     DataType dtype
 ) const {
     const std::size_t bytes =
-        [&]() {
-            if (shape.empty()) {
-                return data_type_size(dtype);
-            }
+        checked_tensor_bytes(shape, dtype);
 
-            std::size_t elements = 1;
-            for (std::size_t dim : shape) {
-                elements *= dim;
-            }
-
-            return elements * data_type_size(dtype);
-        }();
-
-    return Tensor(shape, dtype, Buffer(bytes));
+    return Tensor(
+        shape,
+        dtype,
+        Buffer(bytes)
+    );
 }
 
 const std::string& Device::backend_name() const {

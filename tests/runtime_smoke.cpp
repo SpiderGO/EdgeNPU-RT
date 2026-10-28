@@ -1,6 +1,9 @@
 #include "tinynpu/device.h"
 
+#include <cassert>
 #include <iostream>
+#include <limits>
+#include <stdexcept>
 #include <vector>
 
 int main() {
@@ -11,25 +14,52 @@ int main() {
         tinynpu::DataType::FP32
     );
 
-    if (tensor.element_count() != 6) {
-        std::cerr << "Unexpected element count" << std::endl;
-        return 1;
+    assert(tensor.element_count() == 6);
+    assert(tensor.nbytes() == 6 * sizeof(float));
+    assert(device.backend_name() == "cpu-simulator");
+
+    // 验证 Tensor 与 Buffer 大小不一致时会被拒绝
+    bool size_mismatch_rejected = false;
+
+    try {
+        tinynpu::Tensor invalid_tensor(
+            {2, 3},
+            tinynpu::DataType::FP32,
+            tinynpu::Buffer(sizeof(float))
+        );
+    } catch (const std::invalid_argument&) {
+        size_mismatch_rejected = true;
     }
 
-    if (tensor.nbytes() != 6 * sizeof(float)) {
-        std::cerr << "Unexpected tensor size" << std::endl;
-        return 1;
+    assert(size_mismatch_rejected);
+
+    // 验证 Tensor 大小计算溢出时会被拒绝
+    bool overflow_rejected = false;
+
+    try {
+        device.allocate_tensor(
+            {
+                std::numeric_limits<std::size_t>::max(),
+                2
+            },
+            tinynpu::DataType::FP32
+        );
+    } catch (const std::overflow_error&) {
+        overflow_rejected = true;
     }
 
-    if (device.backend_name() != "cpu-simulator") {
-        std::cerr << "Unexpected backend name" << std::endl;
-        return 1;
-    }
+    assert(overflow_rejected);
 
-    std::cout << "Runtime smoke test passed" << std::endl;
-    std::cout << "Backend: " << device.backend_name() << std::endl;
-    std::cout << "Tensor elements: " << tensor.element_count() << std::endl;
-    std::cout << "Tensor bytes: " << tensor.nbytes() << std::endl;
+    std::cout << "Runtime smoke test passed\n";
+    std::cout << "Backend: "
+              << device.backend_name()
+              << '\n';
+    std::cout << "Tensor elements: "
+              << tensor.element_count()
+              << '\n';
+    std::cout << "Tensor bytes: "
+              << tensor.nbytes()
+              << '\n';
 
     return 0;
 }
