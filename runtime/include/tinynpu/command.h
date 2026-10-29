@@ -38,7 +38,9 @@ struct GemmCommand {
 class CommandQueue {
 public:
     CommandQueue();
-    
+
+    explicit CommandQueue(std::unique_ptr<GemmExecutor> executor);
+
     bool submit(const GemmCommand& command);
     bool submit_gemm(const Tensor& a,
                      const Tensor& b,

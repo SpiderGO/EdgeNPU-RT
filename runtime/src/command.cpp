@@ -3,7 +3,7 @@
 #include "tinynpu/cpu_backend.h"
 
 #include <memory>
-
+#include <utility>
 namespace tinynpu {
 
 void Event::reset() noexcept {
@@ -18,7 +18,13 @@ bool Event::is_complete() const noexcept {
     return completed_;
 }
 
-CommandQueue::CommandQueue() : executor_(std::make_unique<CpuGemmExecutor>()) {}
+CommandQueue::CommandQueue()
+    : CommandQueue(std::make_unique<CpuGemmExecutor>()) {
+}
+
+CommandQueue::CommandQueue(std::unique_ptr<GemmExecutor> executor)
+    : executor_(std::move(executor)) {
+}
 
 bool CommandQueue::submit(const GemmCommand& command) {
     if (command.a == nullptr ||

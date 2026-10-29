@@ -4,6 +4,31 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include <memory>
+#include <utility>
+
+class MockGemmExecutor final : public tinynpu::GemmExecutor {
+public:
+    explicit MockGemmExecutor(bool& called)
+        : called_(called) {
+    }
+
+    bool execute(const tinynpu::GemmCommand& command) override {
+        called_ = true;
+
+        // 这里只验证队列是否调用了 Executor，
+        // 不真正执行 GEMM
+        return command.a != nullptr &&
+               command.b != nullptr &&
+               command.c != nullptr &&
+               command.m > 0 &&
+               command.n > 0 &&
+               command.k > 0;
+    }
+
+private:
+    bool& called_;
+};
 
 int main() {
     tinynpu::Device device;
@@ -67,6 +92,35 @@ int main() {
         assert(std::fabs(c_data[i] - expected[i]) < 1e-5f);
     }
 
+    bool mock_called = false;
+
+    auto mock_executor =
+        std::make_unique<MockGemmExecutor>(mock_called);
+
+    tinynpu::CommandQueue mock_queue(
+        std::move(mock_executor)
+    );
+
+    const float mock_a[] = {1.0f};
+    const float mock_b[] = {2.0f};
+    float mock_c[] = {0.0f};
+
+    tinynpu::GemmCommand mock_command;
+    mock_command.a = mock_a;
+    mock_command.b = mock_b;
+    mock_command.c = mock_c;
+    mock_command.m = 1;
+    mock_command.n = 1;
+    mock_command.k = 1;
+
+    assert(mock_queue.submit(mock_command));
+    assert(mock_queue.wait());
+
+    assert(mock_called);
+    assert(
+        mock_queue.status() ==
+        tinynpu::CommandStatus::Completed
+    );
     std::cout << "tensor command_test passed\n";
     return 0;
 }
