@@ -1,6 +1,8 @@
 #include "tinynpu/command.h"
 
-#include "tinynpu/gemm.h"
+#include "tinynpu/cpu_backend.h"
+
+#include <memory>
 
 namespace tinynpu {
 
@@ -15,6 +17,8 @@ void Event::signal() noexcept {
 bool Event::is_complete() const noexcept {
     return completed_;
 }
+
+CommandQueue::CommandQueue() : executor_(std::make_unique<CpuGemmExecutor>()) {}
 
 bool CommandQueue::submit(const GemmCommand& command) {
     if (command.a == nullptr ||
@@ -106,14 +110,11 @@ bool CommandQueue::wait() {
         return false;
     }
 
-    const bool success = gemm_f32(
-        command_.a,
-        command_.b,
-        command_.c,
-        command_.m,
-        command_.n,
-        command_.k
-    );
+    if(executor_ == nullptr) {
+        status_ = CommandStatus::Failed;
+        return false;
+    }
+    const bool success = executor_->execute(command_);
 
     if (!success) {
         status_ = CommandStatus::Failed;

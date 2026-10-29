@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstddef>
-#include <tinynpu/device.h>
+#include <memory>
+#include "tinynpu/backend.h"
+#include "tinynpu/device.h"
 namespace tinynpu {
 
 enum class CommandStatus {
@@ -35,6 +37,8 @@ struct GemmCommand {
 
 class CommandQueue {
 public:
+    CommandQueue();
+    
     bool submit(const GemmCommand& command);
     bool submit_gemm(const Tensor& a,
                      const Tensor& b,
@@ -47,6 +51,7 @@ public:
 private:
     GemmCommand command_{};
     CommandStatus status_{CommandStatus::Idle};
+    std::unique_ptr<GemmExecutor> executor_;
 };
 
 }  // namespace tinynpu
