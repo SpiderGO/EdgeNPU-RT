@@ -68,8 +68,7 @@ std::size_t data_type_size(DataType dtype) {
     }
 }
 
-Buffer::Buffer(std::size_t bytes)
-    : storage_(bytes, 0) {
+Buffer::Buffer(std::size_t bytes, BufferHandle handle) : storage_(bytes, 0), handle_(handle) {
 }
 
 void* Buffer::data() {
@@ -86,6 +85,14 @@ std::size_t Buffer::size() const {
 
 bool Buffer::empty() const {
     return storage_.empty();
+}
+
+BufferHandle Buffer::handle() const noexcept {
+    return handle_;
+}
+
+bool Buffer::has_handle() const noexcept {
+    return handle_ != kInvalidBufferHandle;
 }
 
 Tensor::Tensor(
@@ -120,6 +127,14 @@ std::size_t Tensor::element_count() const {
 
 std::size_t Tensor::nbytes() const {
     return element_count() * data_type_size(dtype_);
+}
+
+BufferHandle Tensor::buffer_handle() const noexcept {
+    return buffer_.handle();
+}
+
+bool Tensor::has_handle() const noexcept {
+    return buffer_.has_handle();
 }
 
 void* Tensor::data() {

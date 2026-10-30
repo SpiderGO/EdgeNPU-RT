@@ -13,10 +13,7 @@
 
 namespace tinynpu {
 
-FpgaGemmExecutor::FpgaGemmExecutor(
-    std::string device_path
-)
-    : device_path_(std::move(device_path)) {
+FpgaGemmExecutor::FpgaGemmExecutor(std::string device_path) : device_path_(std::move(device_path)) {
 }
 
 bool FpgaGemmExecutor::is_available() const noexcept {
@@ -30,9 +27,7 @@ const std::string& FpgaGemmExecutor::device_path() const noexcept {
     return device_path_;
 }
 
-bool FpgaGemmExecutor::execute(
-    const GemmCommand& command
-) {
+bool FpgaGemmExecutor::execute(const GemmCommand& command) {
     if (!is_available()) {
         return false;
     }

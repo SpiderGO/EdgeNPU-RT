@@ -32,6 +32,8 @@ struct GemmCommand {
     std::uint32_t b_handle{0};
     std::uint32_t c_handle{0};
 
+    static GemmCommand from_tensors(const Tensor& a, const Tensor& b, Tensor& c);
+
     std::size_t m{0};
     std::size_t n{0};
     std::size_t k{0};

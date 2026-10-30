@@ -1,4 +1,5 @@
 #include "tinynpu/device.h"
+#include "tinynpu/command.h"
 
 #include <cassert>
 #include <iostream>
@@ -17,7 +18,34 @@ int main() {
     assert(tensor.element_count() == 6);
     assert(tensor.nbytes() == 6 * sizeof(float));
     assert(device.backend_name() == "cpu-simulator");
+    assert(tensor.buffer_handle() == tinynpu::kInvalidBufferHandle);
+    assert(!tensor.has_handle());
 
+    auto a = device.allocate_tensor(
+        {2, 3},
+        tinynpu::DataType::FP32
+    );
+
+    auto b = device.allocate_tensor(
+        {3, 4},
+        tinynpu::DataType::FP32
+    );
+
+    auto c = device.allocate_tensor(
+        {2, 4},
+        tinynpu::DataType::FP32
+    );
+
+    const auto gemm_command =
+        tinynpu::GemmCommand::from_tensors(a, b, c);
+
+    assert(gemm_command.m == 2);
+    assert(gemm_command.n == 4);
+    assert(gemm_command.k == 3);
+
+    assert(gemm_command.a_handle == a.buffer_handle());
+    assert(gemm_command.b_handle == b.buffer_handle());
+    assert(gemm_command.c_handle == c.buffer_handle());
     // 验证 Tensor 与 Buffer 大小不一致时会被拒绝
     bool size_mismatch_rejected = false;
 

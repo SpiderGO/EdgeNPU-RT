@@ -7,6 +7,10 @@
 
 namespace tinynpu {
 
+using BufferHandle = std::uint32_t;
+
+constexpr BufferHandle kInvalidBufferHandle = 0;
+
 enum class DataType {
     FP32,
     INT8
@@ -16,7 +20,7 @@ std::size_t data_type_size(DataType dtype);
 
 class Buffer {
 public:
-    explicit Buffer(std::size_t bytes);
+    explicit Buffer(std::size_t bytes, BufferHandle handle = kInvalidBufferHandle);
 
     Buffer(const Buffer&) = delete;
     Buffer& operator=(const Buffer&) = delete;
@@ -32,8 +36,12 @@ public:
     std::size_t size() const;
     bool empty() const;
 
+    BufferHandle handle() const noexcept;
+    bool has_handle() const noexcept;
+
 private:
     std::vector<std::uint8_t> storage_;
+    BufferHandle handle_{kInvalidBufferHandle};
 };
 
 class Tensor {
@@ -54,6 +62,9 @@ public:
     std::size_t element_count() const;
     std::size_t nbytes() const;
 
+    BufferHandle buffer_handle() const noexcept;
+    bool has_handle() const noexcept;
+    
     void* data();
     const void* data() const;
 

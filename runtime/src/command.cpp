@@ -2,9 +2,56 @@
 
 #include "tinynpu/cpu_backend.h"
 
+#include <stdexcept>
 #include <memory>
 #include <utility>
 namespace tinynpu {
+
+tinynpu::GemmCommand tinynpu::GemmCommand::from_tensors(
+    const Tensor& a,
+    const Tensor& b,
+    Tensor& c
+) {
+    if (a.shape().size() != 2 ||
+        b.shape().size() != 2 ||
+        c.shape().size() != 2) {
+        throw std::invalid_argument(
+            "GEMM tensors must be two-dimensional"
+        );
+    }
+
+    const std::size_t m = a.shape()[0];
+    const std::size_t k = a.shape()[1];
+    const std::size_t n = b.shape()[1];
+
+    if (b.shape()[0] != k) {
+        throw std::invalid_argument(
+            "GEMM dimensions are incompatible"
+        );
+    }
+
+    if (c.shape()[0] != m || c.shape()[1] != n) {
+        throw std::invalid_argument(
+            "GEMM output shape is incorrect"
+        );
+    }
+
+    GemmCommand command{};
+
+    command.m = static_cast<std::uint32_t>(m);
+    command.n = static_cast<std::uint32_t>(n);
+    command.k = static_cast<std::uint32_t>(k);
+
+    command.a_handle = a.buffer_handle();
+    command.b_handle = b.buffer_handle();
+    command.c_handle = c.buffer_handle();
+
+    command.a = static_cast<const float*>(a.data());
+    command.b = static_cast<const float*>(b.data());
+    command.c = static_cast<float*>(c.data());
+
+    return command;
+}
 
 void Event::reset() noexcept {
     completed_ = false;
@@ -57,7 +104,6 @@ bool CommandQueue::submit_gemm(
     Tensor& c,
     Event* completion_event
 ) {
-    // 当前 Tensor 版 GEMM 只支持 FP32
     if (a.dtype() != DataType::FP32 ||
         b.dtype() != DataType::FP32 ||
         c.dtype() != DataType::FP32) {
@@ -65,50 +111,17 @@ bool CommandQueue::submit_gemm(
         return false;
     }
 
-    // 当前 GEMM 只支持二维 Tensor
-    if (a.shape().size() != 2 ||
-        b.shape().size() != 2 ||
-        c.shape().size() != 2) {
+    try {
+        GemmCommand command =
+            GemmCommand::from_tensors(a, b, c);
+
+        command.completion_event = completion_event;
+
+        return submit(command);
+    } catch (const std::invalid_argument&) {
         status_ = CommandStatus::Failed;
         return false;
     }
-
-    const auto& a_shape = a.shape();
-    const auto& b_shape = b.shape();
-    const auto& c_shape = c.shape();
-
-    const std::size_t m = a_shape[0];
-    const std::size_t k = a_shape[1];
-
-    const std::size_t b_k = b_shape[0];
-    const std::size_t n = b_shape[1];
-
-    // 矩阵乘法要求：
-    //
-    // A: [M, K]
-    // B: [K, N]
-    // C: [M, N]
-    if (k != b_k ||
-        c_shape[0] != m ||
-        c_shape[1] != n ||
-        m == 0 ||
-        n == 0 ||
-        k == 0) {
-        status_ = CommandStatus::Failed;
-        return false;
-    }
-
-    GemmCommand command;
-    command.a = static_cast<const float*>(a.data());
-    command.b = static_cast<const float*>(b.data());
-    command.c = static_cast<float*>(c.data());
-    command.m = m;
-    command.n = n;
-    command.k = k;
-    command.completion_event = completion_event;
-
-    // Tensor 接口最终复用现有底层 float* 接口
-    return submit(command);
 }
 
 bool CommandQueue::wait() {
