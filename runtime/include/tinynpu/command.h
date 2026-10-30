@@ -28,6 +28,10 @@ struct GemmCommand {
     const float* b{nullptr};
     float* c{nullptr};
 
+    std::uint32_t a_handle{0};
+    std::uint32_t b_handle{0};
+    std::uint32_t c_handle{0};
+
     std::size_t m{0};
     std::size_t n{0};
     std::size_t k{0};
