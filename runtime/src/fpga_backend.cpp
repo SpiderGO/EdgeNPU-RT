@@ -32,9 +32,9 @@ bool FpgaGemmExecutor::execute(const GemmCommand& command) {
         return false;
     }
 
-    if (command.a_handle == 0 ||
-        command.b_handle == 0 ||
-        command.c_handle == 0 ||
+    if (command.a_handle == kInvalidBufferHandle ||
+        command.b_handle == kInvalidBufferHandle ||
+        command.c_handle == kInvalidBufferHandle ||
         command.m == 0 ||
         command.n == 0 ||
         command.k == 0) {
@@ -92,6 +92,65 @@ bool FpgaGemmExecutor::execute(const GemmCommand& command) {
     }
 
     return wait_request.status == 0;
+}
+
+bool FpgaGemmExecutor::register_tensor(Tensor& tensor) {
+    if (tensor.nbytes() == 0 || tensor.has_handle()) {
+        return false;
+    }
+
+    const int fd = ::open(device_path_.c_str(), O_RDWR | O_CLOEXEC);
+
+    if (fd < 0) {
+        return false;
+    }
+
+    tinynpu_buffer_register request{};
+
+    request.user_addr = reinterpret_cast<std::uintptr_t>(tensor.data());
+
+    request.size = tensor.nbytes();
+    request.flags = 0;
+    request.handle = 0;
+
+    const int result = ::ioctl(fd, TINYNPU_IOCTL_REGISTER_BUFFER, &request);
+
+    ::close(fd);
+
+    if (result < 0 || request.handle == kInvalidBufferHandle) {
+        return false;
+    }
+
+    tensor.set_buffer_handle(request.handle);
+    return true;
+}
+
+bool FpgaGemmExecutor::release_tensor(Tensor& tensor) {
+    if (!tensor.has_handle()) {
+        return true;
+    }
+
+    const int fd = ::open(device_path_.c_str(), O_RDWR | O_CLOEXEC);
+
+    if (fd < 0) {
+        return false;
+    }
+
+    tinynpu_buffer_release request{};
+
+    request.handle = tensor.buffer_handle();
+    request.reserved = 0;
+
+    const int result = ::ioctl(fd, TINYNPU_IOCTL_RELEASE_BUFFER, &request);
+
+    ::close(fd);
+
+    if (result < 0) {
+        return false;
+    }
+
+    tensor.set_buffer_handle(kInvalidBufferHandle);
+    return true;
 }
 
 }  // namespace tinynpu

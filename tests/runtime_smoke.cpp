@@ -46,6 +46,19 @@ int main() {
     assert(gemm_command.a_handle == a.buffer_handle());
     assert(gemm_command.b_handle == b.buffer_handle());
     assert(gemm_command.c_handle == c.buffer_handle());
+
+    auto handle_tensor = device.allocate_tensor(
+        {2, 2},
+        tinynpu::DataType::FP32
+    );
+
+    assert(!handle_tensor.has_handle());
+
+    handle_tensor.set_buffer_handle(7);
+
+    assert(handle_tensor.has_handle());
+    assert(handle_tensor.buffer_handle() == 7);
+    
     // 验证 Tensor 与 Buffer 大小不一致时会被拒绝
     bool size_mismatch_rejected = false;
 

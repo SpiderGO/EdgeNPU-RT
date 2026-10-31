@@ -9,22 +9,15 @@ namespace tinynpu {
 
 namespace {
 
-std::size_t checked_multiply(
-    std::size_t lhs,
-    std::size_t rhs,
-    const char* message
-) {
-    if (rhs != 0 &&
-        lhs > std::numeric_limits<std::size_t>::max() / rhs) {
+std::size_t checked_multiply(std::size_t lhs, std::size_t rhs, const char* message) {
+    if (rhs != 0 && lhs > std::numeric_limits<std::size_t>::max() / rhs) {
         throw std::overflow_error(message);
     }
 
     return lhs * rhs;
 }
 
-std::size_t checked_element_count(
-    const std::vector<std::size_t>& shape
-) {
+std::size_t checked_element_count(const std::vector<std::size_t>& shape) {
     if (shape.empty()) {
         return 1;
     }
@@ -42,10 +35,7 @@ std::size_t checked_element_count(
     return elements;
 }
 
-std::size_t checked_tensor_bytes(
-    const std::vector<std::size_t>& shape,
-    DataType dtype
-) {
+std::size_t checked_tensor_bytes(const std::vector<std::size_t>& shape, DataType dtype) {
     return checked_multiply(
         checked_element_count(shape),
         data_type_size(dtype),
@@ -95,6 +85,10 @@ bool Buffer::has_handle() const noexcept {
     return handle_ != kInvalidBufferHandle;
 }
 
+void Buffer::set_handle(BufferHandle handle) noexcept {
+    handle_ = handle;
+}
+
 Tensor::Tensor(
     std::vector<std::size_t> shape,
     DataType dtype,
@@ -137,6 +131,10 @@ bool Tensor::has_handle() const noexcept {
     return buffer_.has_handle();
 }
 
+void Tensor::set_buffer_handle(BufferHandle handle) noexcept {
+    buffer_.set_handle(handle);
+}
+
 void* Tensor::data() {
     return buffer_.data();
 }
@@ -145,26 +143,17 @@ const void* Tensor::data() const {
     return buffer_.data();
 }
 
-Device::Device(std::string backend_name)
-    : backend_name_(std::move(backend_name)) {
+Device::Device(std::string backend_name) : backend_name_(std::move(backend_name)) {
 }
 
 Buffer Device::allocate(std::size_t bytes) const {
     return Buffer(bytes);
 }
 
-Tensor Device::allocate_tensor(
-    const std::vector<std::size_t>& shape,
-    DataType dtype
-) const {
-    const std::size_t bytes =
-        checked_tensor_bytes(shape, dtype);
+Tensor Device::allocate_tensor(const std::vector<std::size_t>& shape, DataType dtype) const {
+    const std::size_t bytes = checked_tensor_bytes(shape, dtype);
 
-    return Tensor(
-        shape,
-        dtype,
-        Buffer(bytes)
-    );
+    return Tensor(shape, dtype, Buffer(bytes));
 }
 
 const std::string& Device::backend_name() const {

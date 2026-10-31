@@ -3,6 +3,7 @@
 #include <string>
 
 #include "tinynpu/backend.h"
+#include "tinynpu/device.h"
 
 namespace tinynpu {
 
@@ -14,8 +15,10 @@ public:
 
     bool execute(const GemmCommand& command) override;
 
-    bool is_available() const noexcept;
+    bool register_tensor(Tensor& tensor);
+    bool release_tensor(Tensor& tensor);
 
+    bool is_available() const noexcept;
     const std::string& device_path() const noexcept;
 
 private:

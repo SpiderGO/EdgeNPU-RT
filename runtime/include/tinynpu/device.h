@@ -38,6 +38,7 @@ public:
 
     BufferHandle handle() const noexcept;
     bool has_handle() const noexcept;
+    void set_handle(BufferHandle handle) noexcept;
 
 private:
     std::vector<std::uint8_t> storage_;
@@ -64,6 +65,7 @@ public:
 
     BufferHandle buffer_handle() const noexcept;
     bool has_handle() const noexcept;
+    void set_buffer_handle(BufferHandle handle) noexcept;
     
     void* data();
     const void* data() const;
